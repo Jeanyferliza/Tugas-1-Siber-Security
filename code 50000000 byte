@@ -1,0 +1,92 @@
+import time
+from Crypto.Cipher import AES, DES
+from Crypto.Util.Padding import pad, unpad
+from Crypto.Random import get_random_bytes
+
+def aes_encrypt(plaintext: bytes, key: bytes) -> bytes:
+    cipher = AES.new(key, AES.MODE_CBC)  
+    ct_bytes = cipher.encrypt(pad(plaintext, AES.block_size))
+    return cipher.iv + ct_bytes  # gabung IV + ciphertext
+
+
+def aes_decrypt(ciphertext: bytes, key: bytes) -> bytes:
+    iv = ciphertext[:16]
+    ct = ciphertext[16:]
+    cipher = AES.new(key, AES.MODE_CBC, iv)
+    pt = unpad(cipher.decrypt(ct), AES.block_size)
+    return pt
+
+
+def des_encrypt(plaintext: bytes, key: bytes) -> bytes:
+    cipher = DES.new(key, DES.MODE_CBC)
+    ct_bytes = cipher.encrypt(pad(plaintext, DES.block_size))
+    return cipher.iv + ct_bytes
+
+
+def des_decrypt(ciphertext: bytes, key: bytes) -> bytes:
+    iv = ciphertext[:8]
+    ct = ciphertext[8:]
+    cipher = DES.new(key, DES.MODE_CBC, iv)
+    pt = unpad(cipher.decrypt(ct), DES.block_size)
+    return pt
+
+if __name__ == "__main__":
+    input_file = "input - Copy.txt"
+    aes_file = "aes_encrypted.bin"
+    des_file = "des_encrypted.bin"
+
+    with open(input_file, "rb") as f:
+        data = f.read()
+
+    # Gandakan isi file 1.000.000 kali
+    data = (data.decode("utf-8")).encode("utf-8")
+
+    print(f"Panjang data: {len(data)} byte")
+    print(f"Preview isi file: {data[:100].decode('utf-8')}...")
+
+    aes_key = get_random_bytes(16) 
+    start = time.time()
+    aes_ciphertext = aes_encrypt(data, aes_key)
+    aes_time_enc = time.time() - start
+
+    with open(aes_file, "wb") as f:
+        f.write(aes_ciphertext)
+
+    start = time.time()
+    aes_plaintext = aes_decrypt(aes_ciphertext, aes_key)
+    aes_time_dec = time.time() - start
+
+    aes_total_time = aes_time_enc + aes_time_dec
+
+    print("\n=== AES-128 ===")
+    print("Ciphertext (hex):", aes_ciphertext.hex()[:64], "...")
+    print("Hasil dekripsi :", aes_plaintext[:100].decode('utf-8'), "...")
+    print(f"Waktu Enkripsi: {aes_time_enc:.6f} detik")
+    print(f"Waktu Dekripsi: {aes_time_dec:.6f} detik")
+    print(f"Total Waktu   : {aes_total_time:.6f} detik")
+
+    des_key = get_random_bytes(8) 
+    start = time.time()
+    des_ciphertext = des_encrypt(data, des_key)
+    des_time_enc = time.time() - start
+
+    with open(des_file, "wb") as f:
+        f.write(des_ciphertext)
+
+    start = time.time()
+    des_plaintext = des_decrypt(des_ciphertext, des_key)
+    des_time_dec = time.time() - start
+
+    des_total_time = des_time_enc + des_time_dec
+
+    print("\n=== DES ===")
+    print("Ciphertext (hex):", des_ciphertext.hex()[:64], "...")
+    print("Hasil dekripsi :", des_plaintext[:100].decode('utf-8'), "...")
+    print(f"Waktu Enkripsi: {des_time_enc:.6f} detik")
+    print(f"Waktu Dekripsi: {des_time_dec:.6f} detik")
+    print(f"Total Waktu   : {des_total_time:.6f} detik")
+
+    print("\n=== Perbandingan Waktu ===")
+    print(f"AES lebih cepat {des_time_enc/aes_time_enc:.2f}x dibanding DES (enkripsi).")
+    print(f"AES lebih cepat {des_time_dec/aes_time_dec:.2f}x dibanding DES (dekripsi).")
+    print(f"AES lebih cepat {des_total_time/aes_total_time:.2f}x dibanding DES (total).")
